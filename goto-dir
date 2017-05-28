@@ -1,0 +1,102 @@
+#!/bin/zsh
+
+MY_DIR="$(dirname "$(which "$0")")"
+MY_PUBLIC="public"
+
+
+
+declare -A map
+
+function read_key_values() {
+    local namespace=$1
+    if [[ -z $namespace ]]; then
+        namespace="public"
+    fi;
+
+    local file="$MY_DIR/${namespace}_profile"
+    local header_key="$namespace"
+
+    if [[ -e $file ]]; then
+        while read -r var value; do
+            if [[ -z $value ]]; then
+                map[$header_key]=$var
+            else
+                # echo "value : $value"
+                map[$namespace-$var]="$value"
+            fi
+        done <$file
+    fi
+}
+
+if [[ $1 == "-"* ]]; then
+    namespace=${1:1}
+    project=$2
+else
+    namespace=$MY_PUBLIC
+    project=$1
+fi
+
+read_key_values
+read_key_values $namespace;
+
+# for bash
+# for key in "${map![@]}"; do
+#     echo "$key : ${map[$key]}"
+# done
+
+# for zsh
+# echo "map:"
+# for k in "${(@k)map}"; do
+#   echo "$k -> $map[$k]"
+# done
+
+function get_dir() {
+
+    local namespace=$1
+    
+    dir=$map[$namespace]
+    if [[ -n $dir ]]; then
+        dir=$dir/
+    fi
+}
+
+function get_final_path() {
+    local namespace=$1
+    local project=$2
+
+    if [[ -n $project ]]; then
+        local key="$namespace-$project";
+        project_path=$map[$key]
+    fi
+}
+
+get_dir $namespace
+get_final_path $namespace $project
+
+# echo "dir : $dir"
+# echo "path : $project_path"
+
+if [[ -z $project_path && $namespace != $MY_PUBLIC ]]; then
+    get_dir $MY_PUBLIC
+    get_final_path $MY_PUBLIC $project
+fi
+
+# echo "dir : $dir"
+# echo "path : $project_path"
+
+if [[ -z $project_path ]]; then
+    get_dir $namespace
+    project_path=$project
+fi
+
+if [[ -e $dir$project_path ]]; then
+    cd $dir$project_path
+else 
+    echo "No suce directory $dir$project_path"
+fi
+
+unset map
+unset dir
+unset project_path
+unset namespace
+unset project
