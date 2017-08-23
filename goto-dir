@@ -3,11 +3,20 @@
 MY_DIR="$(dirname "$(which "$0")")"
 MY_PUBLIC="public"
 
-
+DEBUG=false;
 
 declare -A map
 
+function log() {
+    if [[ $DEBUG == true ]]; then
+        echo $1;
+    fi;
+}
+
 function read_key_values() {
+
+    log "Reading key values for namespace $1"
+
     local namespace=$1
     if [[ -z $namespace ]]; then
         namespace="public"
@@ -19,9 +28,12 @@ function read_key_values() {
     if [[ -e $file ]]; then
         while read -r var value; do
             if [[ -z $value ]]; then
+                log "Get key $var and empty"
+                log "Save key $var for namespace root dir"
                 map[$header_key]=$var
             else
-                # echo "value : $value"
+                log "Get key $var and value $value"
+                log "Save key : $namespace-$var => value : $value"
                 map[$namespace-$var]="$value"
             fi
         done <$file
@@ -39,16 +51,21 @@ fi
 read_key_values
 read_key_values $namespace;
 
-# for bash
-# for key in "${map![@]}"; do
-#     echo "$key : ${map[$key]}"
-# done
+if [[ $DEBUG == true ]]; then
+    
+    if [[ $SHELL == *"zsh"* ]]; then
+        log "map:"
+        for k in "${(@k)map}"; do
+        log "$k => $map[$k]"
+        done
+    else
+        log "map:"
+        for key in "${map![@]}"; do
+            log "$key => ${map[$key]}"
+        done
+    fi
 
-# for zsh
-# echo "map:"
-# for k in "${(@k)map}"; do
-#   echo "$k -> $map[$k]"
-# done
+fi
 
 function get_dir() {
 
@@ -58,6 +75,7 @@ function get_dir() {
     if [[ -n $dir ]]; then
         dir=$dir/
     fi
+    log "find dir $dir for namespace $namespace"
 }
 
 function get_final_path() {
@@ -68,21 +86,17 @@ function get_final_path() {
         local key="$namespace-$project";
         project_path=$map[$key]
     fi
+
+    log "get final path $project_path for namespace $namespace and project $project"
 }
 
 get_dir $namespace
 get_final_path $namespace $project
 
-# echo "dir : $dir"
-# echo "path : $project_path"
-
 if [[ -z $project_path && $namespace != $MY_PUBLIC ]]; then
     get_dir $MY_PUBLIC
     get_final_path $MY_PUBLIC $project
 fi
-
-# echo "dir : $dir"
-# echo "path : $project_path"
 
 if [[ -z $project_path ]]; then
     get_dir $namespace
