@@ -1,9 +1,25 @@
 #!/bin/zsh
 
 MY_DIR="$(dirname "$(which "$0")")"
-MY_PUBLIC="public"
+PUBLIC="public"
+PROFILE_SUFFIX=".profile"
 
+# DEBUG=true;
 DEBUG=false;
+
+NULL=""
+
+ANDROID_PLATFORM="android"
+IOS_PLATFORM="ios"
+PLATFORM=""
+
+DP_APP="dianping"
+MT_APP="meituan"
+APP_ENV=""
+
+file_arr=();
+dir_path="";
+project_path="";
 
 declare -A map
 
@@ -13,69 +29,67 @@ function log() {
     fi;
 }
 
+function analysis_params() {
+
+    log "analysis params $1"
+    param=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+
+    params=("${(@s/-/)${param}}")
+
+    for item in $params; do
+        log "in for loop"
+        if [[ $item == "android" ]] || [[ $item == "a" ]]; then
+            PLATFORM=$ANDROID_PLATFORM
+            log "Set platform to $PLATFORM"
+        elif [[ $item == "ios" ]] || [[ $item == "i" ]]; then
+            PLATFORM=$IOS_PLATFORM
+            log "Set platform to $PLATFORM"
+        elif [[ $item == "dianping" ]] || [[ $item == "dp" ]] || [[ $item == "d" ]]; then
+            APP_ENV=$DP_APP
+            log "set app to $APP_ENV"
+        elif [[ $item == "meituan" ]] || [[ $item == "mt" ]] || [[ $item == "m" ]]; then
+            APP_ENV=$MT_APP
+            log "set app to $APP_ENV"
+        fi
+    done
+
+}
+
 function read_key_values() {
 
-    log "Reading key values for namespace $1"
+    local file_name=$1
+    log "Reading key values from $file_name"
 
-    local namespace=$1
-    if [[ -z $namespace ]]; then
-        namespace="public"
+    if [[ -z $file_name ]]; then
+        file_name="$PUBLIC$PROFILE_SUFFIX"
     fi;
 
-    local file="$MY_DIR/${namespace}_profile"
-    local header_key="$namespace"
+    local file="$MY_DIR/$file_name"
 
     if [[ -e $file ]]; then
         while read -r var value; do
             if [[ -z $value ]]; then
                 log "Get key $var and empty"
                 log "Save key $var for namespace root dir"
-                map[$header_key]=$var
+                map[$file_name]=$var
             else
                 log "Get key $var and value $value"
-                log "Save key : $namespace-$var => value : $value"
-                map[$namespace-$var]="$value"
+                log "Save key : $file_name-$var => value : $value"
+                map[$file_name-$var]="$value"
             fi
         done <$file
     fi
 }
 
-if [[ $1 == "-"* ]]; then
-    namespace=${1:1}
-    project=$2
-else
-    namespace=$MY_PUBLIC
-    project=$1
-fi
-
-read_key_values
-read_key_values $namespace;
-
-if [[ $DEBUG == true ]]; then
-    
-    if [[ $SHELL == *"zsh"* ]]; then
-        log "map:"
-        for k in "${(@k)map}"; do
-        log "$k => $map[$k]"
-        done
-    else
-        log "map:"
-        for key in "${map![@]}"; do
-            log "$key => ${map[$key]}"
-        done
-    fi
-
-fi
-
 function get_dir() {
 
     local namespace=$1
     
-    dir=$map[$namespace]
-    if [[ -n $dir ]]; then
-        dir=$dir/
+    dir_path=$map[$namespace]
+    if [[ -n $dir_path ]]; then
+        dir_path=$dir_path/
     fi
-    log "find dir $dir for namespace $namespace"
+    log "get dir $dir_path for namespace $namespace"
 }
 
 function get_final_path() {
@@ -90,23 +104,87 @@ function get_final_path() {
     log "get final path $project_path for namespace $namespace and project $project"
 }
 
-get_dir $namespace
-get_final_path $namespace $project
+# analyise params
+if [[ $1 == "-"* ]]; then
+    analysis_params $1
+    project=$2
+else
+    project=$1
+fi
 
-if [[ -z $project_path && $namespace != $MY_PUBLIC ]]; then
-    get_dir $MY_PUBLIC
-    get_final_path $MY_PUBLIC $project
+# files will be read
+file_arr=("${PUBLIC}${PROFILE_SUFFIX}")
+if [[ $PLATFORM != $NULL ]]; then
+    file_arr+=("${PLATFORM}_${PUBLIC}${PROFILE_SUFFIX}")
+
+    if [[ $APP_ENV != $NULL ]]; then
+        file_arr+=("${PLATFORM}_${APP_ENV}${PROFILE_SUFFIX}")
+    fi
+fi
+
+# print key-values read from files
+if [[ $DEBUG == true ]]; then
+    
+    log "File name Array:"
+    for filename in $file_arr; do 
+        log "$filename"
+    done
+ 
+fi
+
+# read files
+for file_name in $file_arr; do
+    read_key_values $file_name
+done
+
+# print key-values read from files
+if [[ $DEBUG == true ]]; then
+    
+    # if [[ $SHELL == *"zsh"* ]]; then
+        log "map:"
+        for k in "${(@k)map}"; do
+            log "$k => $map[$k]"
+        done
+    # else
+    #     log "map:"
+    #     for key in "${map![@]}"; do
+    #         log "$key => ${map[$key]}"
+    #     done
+    # fi
+
+fi
+
+dir=""
+for (( i=${#file_arr[@]} ; i > 0 ; i-- )); do
+    log "i = $i"
+    dir=${file_arr[i]}
+    get_dir $dir
+    get_final_path $dir $project
+
+    if [[ -z $project_path ]]; then
+    else
+        break;
+    fi
+done
+
+log "find dir path $dir_path and project path $project_path"
+
+if [[ -z $dir_path ]]; then
+    dir_path=$PWD
+    log "change dir path to $dir_path"
 fi
 
 if [[ -z $project_path ]]; then
-    get_dir $namespace
+    get_dir $dir
     project_path=$project
 fi
 
-if [[ -e $dir$project_path ]]; then
-    cd $dir$project_path
+log "find final dir path $dir_path$project_path."
+
+if [[ -e $dir_path$project_path ]]; then
+    cd $dir_path$project_path
 else 
-    echo "No suce directory $dir$project_path"
+    echo "No suce directory $dir_path$project_path"
 fi
 
 unset map
