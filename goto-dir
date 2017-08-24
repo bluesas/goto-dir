@@ -4,8 +4,8 @@ MY_DIR="$(dirname "$(which "$0")")"
 PUBLIC="public"
 PROFILE_SUFFIX=".profile"
 
-# DEBUG=true;
-DEBUG=false;
+DEBUG=true;
+# DEBUG=false;
 
 NULL=""
 
@@ -98,6 +98,9 @@ function get_final_path() {
 
     if [[ -n $project ]]; then
         local key="$namespace-$project";
+        project_path=$map[$key]
+    else 
+        local key="$namespace";
         project_path=$map[$key]
     fi
 
