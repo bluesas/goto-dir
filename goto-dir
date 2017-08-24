@@ -4,8 +4,8 @@ MY_DIR="$(dirname "$(which "$0")")"
 PUBLIC="public"
 PROFILE_SUFFIX=".profile"
 
-DEBUG=true;
-# DEBUG=false;
+# DEBUG=true;
+DEBUG=false;
 
 NULL=""
 
