@@ -99,9 +99,6 @@ function get_final_path() {
     if [[ -n $project ]]; then
         local key="$namespace-$project";
         project_path=$map[$key]
-    else 
-        local key="$namespace";
-        project_path=$map[$key]
     fi
 
     log "get final path $project_path for namespace $namespace and project $project"
@@ -162,6 +159,14 @@ for (( i=${#file_arr[@]} ; i > 0 ; i-- )); do
     log "i = $i"
     dir=${file_arr[i]}
     get_dir $dir
+    if [[ -z $dir_path ]]; then 
+        continue;
+    fi
+
+    if [[ -z $project ]]; then 
+        break;
+    fi
+
     get_final_path $dir $project
 
     if [[ -z $project_path ]]; then
@@ -173,12 +178,11 @@ done
 log "find dir path $dir_path and project path $project_path"
 
 if [[ -z $dir_path ]]; then
-    dir_path=$PWD
+    dir_path=$PWD/
     log "change dir path to $dir_path"
 fi
 
 if [[ -z $project_path ]]; then
-    get_dir $dir
     project_path=$project
 fi
 
