@@ -69,13 +69,18 @@ function read_key_values() {
     if [[ -e $file ]]; then
         while read -r var value; do
             if [[ -z $value ]]; then
+                if [[ -z $var ]]; then
+                    continue;
+                fi;
                 log "Get key $var and empty"
                 log "Save key $var for namespace root dir"
                 map[$file_name]=$var
+                log "Add $file_name => $var to Map."
             else
                 log "Get key $var and value $value"
                 log "Save key : $file_name-$var => value : $value"
                 map[$file_name-$var]="$value"
+                log "Add $file_name-$var => $value to Map."
             fi
         done <$file
     fi
