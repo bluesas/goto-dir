@@ -4,10 +4,12 @@ MY_DIR="$(dirname "$(which "$0")")"
 PUBLIC="public"
 PROFILE_SUFFIX=".profile"
 
-# DEBUG=true;
-DEBUG=false;
+DEBUG=true;
+# DEBUG=false;
 
 NULL=""
+
+PICASSO_PLATFORM="picasso"
 
 ANDROID_PLATFORM="android"
 IOS_PLATFORM="ios"
@@ -43,6 +45,9 @@ function analysis_params() {
             log "Set platform to $PLATFORM"
         elif [[ $item == "ios" ]] || [[ $item == "i" ]]; then
             PLATFORM=$IOS_PLATFORM
+            log "Set platform to $PLATFORM"
+        elif [[ $item == "picasso" ]] || [[ $item == "pica" ]] || [[ $item == "pic" ]] || [[ $item == "pi" ]]; then
+            PLATFORM=$PICASSO_PLATFORM
             log "Set platform to $PLATFORM"
         elif [[ $item == "dianping" ]] || [[ $item == "dp" ]] || [[ $item == "d" ]]; then
             APP_ENV=$DP_APP
@@ -124,6 +129,8 @@ if [[ $PLATFORM != $NULL ]]; then
 
     if [[ $APP_ENV != $NULL ]]; then
         file_arr+=("${PLATFORM}_${APP_ENV}${PROFILE_SUFFIX}")
+    else
+        file_arr+=("${PLATFORM}${PROFILE_SUFFIX}")
     fi
 fi
 
@@ -159,6 +166,7 @@ if [[ $DEBUG == true ]]; then
 
 fi
 
+dir_paths=()
 dir=""
 for (( i=${#file_arr[@]} ; i > 0 ; i-- )); do
     log "i = $i"
@@ -167,6 +175,7 @@ for (( i=${#file_arr[@]} ; i > 0 ; i-- )); do
     if [[ -z $dir_path ]]; then 
         continue;
     fi
+    dir_paths+=("$dir_path")
 
     if [[ -z $project ]]; then 
         break;
@@ -180,15 +189,36 @@ for (( i=${#file_arr[@]} ; i > 0 ; i-- )); do
     fi
 done
 
+# print key-values read from files
+if [[ $DEBUG == true ]]; then
+    
+    log "Directory name Array:"
+    for dirname in $dir_paths; do 
+        log "$dirname"
+    done
+ 
+fi
+
 log "find dir path $dir_path and project path $project_path"
+
+if [[ -z $project_path ]]; then
+    project_path=$project
+fi
+
+if [[ -z $dir_path ]]; then
+    for (( j=1; j <= ${#dir_paths[@]}; j++ )); do
+        log "j = $j, dir_paths[j] = ${dir_paths[j]}"
+        if [[ -e "${dir_paths[j]}$project_path" ]]; then        
+            dir_path="${dir_paths[j]}"
+            log "change dir path to $dir_path"
+            break;
+        fi
+    done
+fi
 
 if [[ -z $dir_path ]]; then
     dir_path=$PWD/
     log "change dir path to $dir_path"
-fi
-
-if [[ -z $project_path ]]; then
-    project_path=$project
 fi
 
 log "find final dir path $dir_path$project_path."
@@ -196,7 +226,7 @@ log "find final dir path $dir_path$project_path."
 if [[ -e $dir_path$project_path ]]; then
     cd $dir_path$project_path
 else 
-    echo "No suce directory $dir_path$project_path"
+    echo "Can not find directory."
 fi
 
 unset map
